@@ -37,7 +37,7 @@ int isComment = 0;
 
 
 // Function to check if a word is a keyword and return its token type
-int is_keyword(const char *word) {
+int is_keyword( char *word) {
 
     if (strcmp(word, "null") == 0) return skipsym;
     if (strcmp(word, "begin") == 0) return beginsym;
@@ -60,7 +60,7 @@ int is_keyword(const char *word) {
 }
 
 //Function used to check for valid symbols and returns its token type
-int is_symbol(const char *word) {
+int is_symbol( char *word) {
     if (strcmp(word, "+") == 0) return plussym;
     if (strcmp(word, "-") == 0) return minussym;
     if (strcmp(word, "*") == 0) return multsym;
@@ -81,22 +81,22 @@ int is_symbol(const char *word) {
 }
 
 //adds into token array
-void add_token(int type, const char *value) {
+void add_token(int type,  char *value) {
     tokens[token_count].type = type;
     strcpy(tokens[token_count].value, value);
     token_count++;
 }
 
-void tokenize_line(const char *line) {
+void tokenize_line(char *line) {
 
     int lineCounter = 0, wordLen = 0;
     char c;
+
     if(!isComment)
         c = line[lineCounter++];
 
     //deals with string length of 1 (last line of ta case)
     if(strlen(line) < 2){
-
         c = line[0];
         if(isalpha(c)){
             add_token(is_keyword(line), line);
@@ -114,9 +114,9 @@ void tokenize_line(const char *line) {
     while ((isComment || c != '\0') ) {
 
         char word[MAX_STR_LEN] = {0};
+
         // Check for comments
         if ( isComment == 1) {
-            isComment = 1;
             lineCounter++;
             // Move past the opening comment delimiter
             while (line[lineCounter] != '\0' && isComment) {
@@ -149,6 +149,7 @@ void tokenize_line(const char *line) {
             else
                 add_token(-2, word);
 
+
         }
 
             //Number loop
@@ -170,12 +171,12 @@ void tokenize_line(const char *line) {
             //Symbol check
         else if (!isspace(c) ) {
 
-            while (!isspace(c) && !isalpha(c) && !isdigit(c) && !isComment) {
+            while (!isspace(c) && !isalpha(c) && !isdigit(c) && !isComment && c != '\0' ) {
                 if(line[lineCounter -1 ] == '/' && line[lineCounter] == '*'){
                     isComment = 1;
 
                 }
-                else{
+                else {
                     word[wordLen++] = c;
                     c = line[lineCounter++];
                 }
@@ -197,6 +198,7 @@ void tokenize_line(const char *line) {
         wordLen = 0;
 
     }
+
 }
 
 

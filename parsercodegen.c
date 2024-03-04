@@ -171,27 +171,50 @@ void tokenize_line(char *line) {
             //Symbol check
         else if (!isspace(c) ) {
 
+            //while a symbol and not null
             while (!isspace(c) && !isalpha(c) && !isdigit(c) && !isComment && c != '\0' ) {
+                //opening comment check
                 if(line[lineCounter -1 ] == '/' && line[lineCounter] == '*'){
                     isComment = 1;
 
                 }
+                //not a comment therefore a symbols(s) that will later be checked
                 else {
                     word[wordLen++] = c;
                     c = line[lineCounter++];
                 }
             }
-
+            //check for symbol in code that are no comments
             if(!isComment){
-                int symType = is_symbol(word);
-                add_token(symType, word);
+                int symType, i = 0;
+                char sym[2];
+
+                //separates invalid symbols from valid string
+                if(is_symbol(word) == -1){
+                    while(i < wordLen){
+                        sym[0] = word[i];
+
+                        i++;
+                        symType = is_symbol(sym);
+                        add_token(symType, sym);
+
+                    }
+
+                }
+                else{
+                    //no invalid symbols were found in "word" string
+                    symType = is_symbol(word);
+                    add_token(symType, word);
+
+                }
             }
+            //currently in a comment so we just increment through it and ignore it
             else{
                 c = line[lineCounter++];
             }
 
 
-        } else {
+        } else {    //a white space was encountered
             c = line[lineCounter++];
         }
 

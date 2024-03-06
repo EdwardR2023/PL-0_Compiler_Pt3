@@ -11,13 +11,13 @@
 
 // Token types
 enum {
-    skipsym = 1, identsym = 2, numbersym = 3, plussym = 4, minussym = 5,
+    oddsym = 1, identsym = 2, numbersym = 3, plussym = 4, minussym = 5,
     multsym = 6, slashsym = 7, fisym = 8, eqlsym = 9, neqsym = 10, lessym = 11,
     leqsym = 12, gtrsym = 13, geqsym = 14, lparentsym = 15, rparentsym = 16,
     commasym = 17, semicolonsym = 18, periodsym = 19, becomessym = 20,
-    beginsym = 21, endsym = 22, ifsym = 23, thensym = 24, whilesym = 25, dosym = 26,
-    callsym = 27, constsym = 28, varsym = 29, procsym = 30, writesym = 31,
-    readsym = 32, elsesym = 33
+    beginsym = 21, endsym = 22, ifsym = 23, thensym = 24, whilesym = 25, dosym = 26
+    /*, callsym = 27*/, constsym = 28, varsym = 29 /*, procsym = 30*/, writesym = 31,
+    readsym = 32 /*, elsesym = 33*/
 };
 
 
@@ -31,15 +31,41 @@ typedef struct {
 Token tokens[MAX_CODE_LEN];
 int token_count = 0;
 
+//Symbol structure
+typedef struct
+{
+    int kind; // const = 1, var = 2, proc = 3
+    char name[MAX_IDENT_LEN]; // name up to 11 chars
+    int val; // number (ASCII value)
+    int level; // L level
+    int addr; // M address
+    int mark; // to indicate unavailable or deleted
+} Symbol;
+
+//Array to store symbols (for parser)
+Symbol symbols[MAX_CODE_LEN];
+int symbol_count = 0;
+
+//Store OP code commands
+int opCode[MAX_CODE_LEN];
+int opIndex = 0;
+
+
 //Boolean is true while inside a comment
 //initialized as false
 int isComment = 0;
+
+//Period is found, halt program
+int halt = 0;
+
+//Increment through token list for parsing
+int parserCount = 0;
 
 
 // Function to check if a word is a keyword and return its token type
 int is_keyword( char *word) {
 
-    if (strcmp(word, "null") == 0) return skipsym;
+    if (strcmp(word, "null") == 0) return oddsym;
     if (strcmp(word, "begin") == 0) return beginsym;
     if (strcmp(word, "end") == 0) return endsym;
     if (strcmp(word, "if") == 0) return ifsym;
@@ -47,13 +73,13 @@ int is_keyword( char *word) {
     if (strcmp(word, "then") == 0) return thensym;
     if (strcmp(word, "while") == 0) return whilesym;
     if (strcmp(word, "do") == 0) return dosym;
-    if (strcmp(word, "call") == 0) return callsym;
+    //if (strcmp(word, "call") == 0) return callsym;
     if (strcmp(word, "const") == 0) return constsym;
     if (strcmp(word, "var") == 0) return varsym;
-    if (strcmp(word, "procedure") == 0) return procsym;
+    //if (strcmp(word, "procedure") == 0) return procsym;
     if (strcmp(word, "write") == 0) return writesym;
     if (strcmp(word, "read") == 0) return readsym;
-    if (strcmp(word, "else") == 0) return elsesym;
+    //if (strcmp(word, "else") == 0) return elsesym;
     return identsym;
 
     // If not a keyword, consider it an identifier
@@ -198,13 +224,22 @@ void tokenize_line(char *line) {
                         symType = is_symbol(sym);
                         add_token(symType, sym);
 
+                        if(symType == periodsym){
+                            halt = 1;
+                            return;
+                        }
+
                     }
 
                 }
                 else{
-                    //no invalid symbols were found in "word" string
                     symType = is_symbol(word);
                     add_token(symType, word);
+
+                    if(symType == periodsym){
+                        halt = 1;
+                        return;
+                    }
 
                 }
             }
@@ -224,6 +259,182 @@ void tokenize_line(char *line) {
 
 }
 
+int symbolTableChecker(char* name){
+    for(int i = 0; i < symbol_count; i++){
+        if(strcmp(symbols[i].name, name) == 0)
+            return i;
+    }
+    return -1;
+}
+
+void addToSymbolTable(int kind, char* name, int num, int level, int addr, int mark){
+
+    symbols[symbol_count].kind = kind;
+    strcpy(symbols[symbol_count].name, name);
+    symbols[symbol_count].val = num;
+    symbols[symbol_count].level = level;
+    symbols[symbol_count].addr = addr;
+    symbols[symbol_count].mark = mark;
+    symbol_count++;
+}
+
+void printSymbolTable(){
+
+    printf("\nSymbol Table:\n\n");
+    printf("Kind\t| Name\t\t| Value\t| Level\t| Address\t| Mark\n");
+    printf("--------------------------------------------------------------\n");
+    for(int i = 0; i < symbol_count; i++){
+        Symbol cur = symbols[i];
+        printf("%d\t| %s\t\t| %d\t| %d\t| %d\t\t| %d\n", cur.kind, cur.name, cur.val, cur.level, cur.addr, cur.mark);
+
+    }
+}
+
+int numConvert(char* val){
+
+    int len = strlen(val);
+    int total = 0;
+    int pow = 1;
+
+    for(int i = len-1; i >= 0; i--) {
+        total += ((int) val[i] - 48) * pow;
+        pow *= 10;
+    }
+
+    return total;
+}
+
+int constDeclaration(Token curToken){
+
+    parserCount++;
+
+    do{
+        curToken = tokens[parserCount++];
+        printf("\nPRINT 1 : %d %s", curToken.type, curToken.value);
+        if(curToken.type != identsym) {
+            printf("\nERROR: const, var, and read keywords must be followed by identifier\n");
+            return -1;
+        }
+        if(symbolTableChecker(curToken.value) != -1){
+            printf("\nERROR: symbol name has already been declared\n");
+            return -1;
+        }
+
+        char identName[11];
+        strcpy(identName, curToken.value);
+
+        curToken = tokens[parserCount++];
+        printf("\nPRINT 2 : %d %s", curToken.type, curToken.value);
+
+        if(curToken.type != eqlsym) {
+            printf("\nERROR: constants must be assigned with =\n");
+            return -1;
+        }
+
+        curToken = tokens[parserCount++];
+        printf("\nPRINT 3 : %d %s", curToken.type, curToken.value);
+
+        if(curToken.type != numbersym) {
+            printf("\nERROR: constants must be assigned with an integer value\n");
+            return -1;
+        }
+
+        int num = numConvert(curToken.value);
+
+        addToSymbolTable(1, identName, num, 0, 0, 0);
+
+        curToken = tokens[parserCount++];
+        printf("\nPRINT 4 : %d %s", curToken.type, curToken.value);
+
+
+    } while(curToken.type == commasym);
+
+    if(curToken.type != semicolonsym){
+        printf("\nERROR: constant and variable declarations must be followed by a semicolon\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+int varDeclaration(Token curToken){
+    int numVar = 0;
+    parserCount++;
+    do{
+        numVar++;
+        curToken = tokens[parserCount++];
+
+        printf("\nPRINT 1 : %d %s", curToken.type, curToken.value);
+        if(curToken.type != identsym) {
+            printf("\nERROR: const, var, and read keywords must be followed by identifier\n");
+            return -1;
+        }
+        if(symbolTableChecker(curToken.value) != -1){
+            printf("\nERROR: symbol name has already been declared\n");
+            return -1;
+        }
+
+        char identName[11];
+        strcpy(identName, curToken.value);
+
+        addToSymbolTable(2, identName, 0, 0, numVar+2, 0);
+
+        curToken = tokens[parserCount++];
+        printf("\nPRINT 4 : %d %s", curToken.type, curToken.value);
+
+
+    } while(curToken.type == commasym);
+    if(curToken.type != semicolonsym){
+        printf("\nERROR: constant and variable declarations must be followed by a semicolon\n");
+        return -1;
+    }
+
+    return numVar;
+}
+
+void parser(){
+
+    opCode[opIndex] = 7;
+    opCode[opIndex+1] = 0;
+    opCode[opIndex+2] = 3;
+    opIndex += 3;
+
+
+    parserCount = 0;
+
+    if(tokens[token_count-1].type != periodsym){
+        printf("\nERROR: program must end with period\n");
+        return;
+    }
+
+    while(parserCount < token_count){
+
+        Token curToken = tokens[parserCount];
+        if(curToken.type == constsym){
+
+            if(constDeclaration(curToken) == -1)
+                return;
+
+        } else if(curToken.type == varsym){
+
+            int numVar = varDeclaration(curToken);
+
+            if(numVar == -1)
+                return;
+            else{
+                opCode[opIndex] = 6;
+                opCode[opIndex+1] = 0;
+                opCode[opIndex+2] = numVar + 3;
+                opIndex += 3;
+            }
+        } else {
+            parserCount++;
+        }
+    }
+
+    printSymbolTable();
+
+}
 
 // Main function
 int main(int argc, char *argv[]) {
@@ -242,7 +453,7 @@ int main(int argc, char *argv[]) {
 
     char line[MAX_CODE_LEN];
     printf("SOURCE PROGRAM:\n");
-    while (fgets(line, sizeof(line), file)) {
+    while (fgets(line, sizeof(line), file) && halt == 0) {
         printf("%s", line);
         tokenize_line(line);
     }
@@ -252,13 +463,16 @@ int main(int argc, char *argv[]) {
 
         if (tokens[i].type > 0)
             printf("%s\t\t\t%d\n", tokens[i].value, tokens[i].type);
-        else if (tokens[i].type == -1)
+        else if (tokens[i].type == -1) {
             printf("%s\t\t\tERROR: INVALID SYMBOL\n", tokens[i].value);
-        else if (tokens[i].type == -2)
+            return 0;
+        } else if (tokens[i].type == -2) {
             printf("%s\t\tERROR: IDENTIFIER IS TOO LONG\n", tokens[i].value);
-        else if (tokens[i].type == -3)
+            return 0;
+        } else if (tokens[i].type == -3) {
             printf("%s\t\t\tERROR: NUMBER IS TOO LONG\n", tokens[i].value);
-
+            return 0;
+        }
 
     }
 
@@ -274,5 +488,13 @@ int main(int argc, char *argv[]) {
 
     }
     fclose(file);
+
+    parser();
+    for(int i = 0; i < opIndex; i++){
+        if(i%3 == 0)
+            printf("\n");
+
+        printf("%d ", opCode[i]);
+    }
     return 0;
 }

@@ -1,5 +1,7 @@
+const w = 24, z = 492, k = 1;
 var x, y;
 begin
 y := 3;
 x := y + 56;
 end.
+

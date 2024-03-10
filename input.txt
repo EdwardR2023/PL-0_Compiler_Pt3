@@ -1,7 +1,9 @@
-const w = 24, z = 492, k = 1;
 var x, y;
 begin
+if x > 4
+then x := 3;
 y := 3;
-x := y + 56;
+x := 6 * (y + 56);
+if x > 1 then y := 20;
 end.
 

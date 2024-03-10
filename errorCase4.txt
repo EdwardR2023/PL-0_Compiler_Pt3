@@ -1,0 +1,5 @@
+const a = ;
+var x, y, z;
+begin
+z:= y * 2;
+end.

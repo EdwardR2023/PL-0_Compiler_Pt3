@@ -1,0 +1,8 @@
+const z = 2;
+var x, y;
+begin
+while x <> 2
+do x := x + 1;
+y := ;
+x := 6 * (y + 56);
+end.

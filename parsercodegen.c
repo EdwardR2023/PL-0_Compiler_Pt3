@@ -348,15 +348,15 @@ void printOpCode(){
 int numConvert(char *val) {
 
     int len = strlen(val);
-    int total = 0;
+    int number = 0;
     int pow = 1;
 
     for (int i = len - 1; i >= 0; i--) {
-        total += ((int) val[i] - 48) * pow;
+        number += ((int) val[i] - 48) * pow;
         pow *= 10;
     }
 
-    return total;
+    return number;
 }
 int constDeclaration();
 int varDeclaration();
@@ -469,6 +469,7 @@ int varDeclaration() {
 
 int Expression(){
     Token curToken;
+
     Term();
     curToken = tokens[parserCount];
     while(curToken.type == plussym || curToken.type == minussym){
@@ -518,6 +519,7 @@ int Term(){
 int Factor(){
     int symIdx;
     Token curToken = tokens[parserCount];
+
     if(curToken.type == identsym){
         symIdx = symbolTableChecker(curToken.value);
 
@@ -619,7 +621,7 @@ void Statement() {
         return;
     }
     if (curToken.type == ifsym){
-        curToken = tokens[++parserCount];
+        ++parserCount;
         Condition();
         curToken = tokens[parserCount];
         //emit JPC
@@ -633,6 +635,11 @@ void Statement() {
         ++parserCount;
         Statement();
         curToken = tokens[parserCount];
+        if(curToken.type != fisym){
+            printf("ERROR: then must be followed by fi\n");
+            exit(-4);
+        }
+        ++parserCount;
 
         //JpcInx +2 is in the M spot of the opCode command
         opCode[JpcInx+2] = opIndex;
@@ -640,7 +647,7 @@ void Statement() {
 
     }
     if(curToken.type == whilesym){
-        curToken = tokens[++parserCount];
+        ++parserCount;
         int loopIdx = opIndex;
         Condition();
         curToken = tokens[parserCount];
@@ -658,6 +665,15 @@ void Statement() {
         emit(8,0,loopIdx);
         opCode[JpcInx+2] = opIndex;
         return;
+    }
+    if (curToken.type == readsym){
+        emit(9,0,2);
+    }
+    if (curToken.type == writesym){
+        ++parserCount;
+        printf("Write %s\n", tokens[parserCount].value);
+        Expression();
+        emit(9,0,1);
     }
 
 

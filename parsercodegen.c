@@ -643,6 +643,7 @@ void Statement() {
         curToken = tokens[++parserCount];
         int loopIdx = opIndex;
         Condition();
+        curToken = tokens[parserCount];
         if(curToken.type != dosym){
             printf("ERROR: while must be followed by do\n");
             exit(-4);
@@ -678,7 +679,6 @@ int Condition(){
         if( curToken.type == eqlsym){
             ++parserCount;
             Expression();
-            curToken = tokens[parserCount];
 
             //emit EQL
             emit(2,0,5);
@@ -686,7 +686,6 @@ int Condition(){
         else if(curToken.type == neqsym){
             ++parserCount;
             Expression();
-            curToken = tokens[parserCount];
 
             //emit NEQ
             emit(2,0,6);
@@ -695,7 +694,6 @@ int Condition(){
         else if (curToken.type == lessym){
             ++parserCount;
             Expression();
-            curToken = tokens[parserCount];
 
             //emit LLS
             emit(2,0,7);
@@ -704,7 +702,6 @@ int Condition(){
         else if(curToken.type == leqsym){
             ++parserCount;
             Expression();
-            curToken = tokens[parserCount];
 
             //emit LEQ
             emit(2,0,8);
@@ -712,7 +709,6 @@ int Condition(){
         else if(curToken.type == gtrsym){
             ++parserCount;
             Expression();
-            curToken = tokens[parserCount];
 
             //emit GTR
             emit(2,0,9);
@@ -720,7 +716,6 @@ int Condition(){
         else if(curToken.type == geqsym){
             ++parserCount;
             Expression();
-            curToken = tokens[parserCount];
 
             //emit GEQ
             emit(2,0,10);

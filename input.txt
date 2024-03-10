@@ -1,7 +1,10 @@
+const z = 2;
 var x, y;
 begin
-if x > 4
+if z > 4
 then x := 3;
+while x <> 2
+do x := x + 1;
 y := 3;
 x := 6 * (y + 56);
 if x > 1 then y := 20;

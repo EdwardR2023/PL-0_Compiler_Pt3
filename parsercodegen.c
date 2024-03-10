@@ -667,13 +667,30 @@ void Statement() {
         return;
     }
     if (curToken.type == readsym){
+        curToken= tokens[++parserCount];
+        if (curToken.type != identsym){
+            printf("ERROR: read must be followed by an identifier\n");
+            exit(-4);
+        }
+        int symIdx = symbolTableChecker(curToken.value);
+        if(symIdx == -1){
+            printf("ERROR: Identifier not found\n");
+            exit(-4);
+        }
+        if (symbols[symIdx].kind != 2){
+            printf("ERROR: Not a variable\n");
+            exit(-4);
+        }
+        ++parserCount;
         emit(9,0,2);
+        emit(4,0,symbols[symIdx].addr);
+        return;
     }
     if (curToken.type == writesym){
         ++parserCount;
-        printf("Write %s\n", tokens[parserCount].value);
         Expression();
         emit(9,0,1);
+        return;
     }
 
 

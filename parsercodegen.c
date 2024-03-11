@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
+
 #define MAX_IDENT_LEN 11
 #define MAX_NUM_LEN 5
 #define MAX_CODE_LEN 1000
@@ -257,6 +258,7 @@ void tokenize_line(char *line) {
 
 }
 
+//function to run through our table of variables and constants
 int symbolTableChecker(char *name) {
     for (int i = 0; i < symbol_count; i++) {
         if (strcmp(symbols[i].name, name) == 0)
@@ -265,6 +267,7 @@ int symbolTableChecker(char *name) {
     return -1;
 }
 
+//function that adds newly intialized vairables to our table
 void addToSymbolTable(int kind, char *name, int num, int level, int addr, int mark) {
 
     symbols[symbol_count].kind = kind;
@@ -276,6 +279,7 @@ void addToSymbolTable(int kind, char *name, int num, int level, int addr, int ma
     symbol_count++;
 }
 
+//function to print the table
 void printSymbolTable() {
 
     printf("\nSymbol Table:\n");
@@ -287,12 +291,14 @@ void printSymbolTable() {
 
     }
 }
-void printOpCode(){
+
+//function to all OPCODE generated
+void printOpCode() {
     printf("LINE\t OP\tM\tL\n");
     printf("----------------------------");
     for (int i = 0; i < opIndex; i++) {
-        if (i % 3 == 0){
-            printf("\n%d\t",i/3);
+        if (i % 3 == 0) {
+            printf("\n%d\t", i / 3);
             switch (opCode[i]) {
                 case 1:
                     printf("LIT\t");
@@ -338,13 +344,13 @@ void printOpCode(){
                     break;
             }
 
-        }
-        else
+        } else
             printf("%d\t", opCode[i]);
     }
     printf("\n");
 }
 
+//function that converts chars to numbers
 int numConvert(char *val) {
 
     int len = strlen(val);
@@ -358,28 +364,41 @@ int numConvert(char *val) {
 
     return number;
 }
+
+//function prototpyes
 int constDeclaration();
+
 int varDeclaration();
+
 int Expression();
+
 void Statement();
+
 int Condition();
+
 int Factor();
+
 int Term();
-void emit(int op, int l, int m){ //used to write opcode
+
+//function to created opcode
+void emit(int op, int l, int m) { //used to write opcode
 
     opCode[opIndex] = op;
-    opCode[opIndex+1] = l;
-    opCode[opIndex+2] = m;
+    opCode[opIndex + 1] = l;
+    opCode[opIndex + 2] = m;
     opIndex += 3;
 
 }
 
-int constDeclaration( ) {
+int constDeclaration() {
+
     Token curToken = tokens[parserCount];
-    if(curToken.type == constsym){
+    if (curToken.type == constsym) {
         do {
             curToken = tokens[++parserCount];
             // printf("\nPRINT 1 : %d %s", curToken.type, curToken.value);
+
+
             if (curToken.type != identsym) {
                 printf("\nERROR: const, var, and read keywords must be followed by identifier\n");
                 exit(-1);
@@ -433,7 +452,7 @@ int varDeclaration() {
 
     int numVar = 0;
     Token curToken = tokens[parserCount];
-    if(curToken.type == varsym) {
+    if (curToken.type == varsym) {
         do {
             numVar++;
             curToken = tokens[++parserCount];
@@ -467,102 +486,97 @@ int varDeclaration() {
     return numVar;
 }
 
-int Expression(){
+int Expression() {
     Token curToken;
 
     Term();
     curToken = tokens[parserCount];
-    while(curToken.type == plussym || curToken.type == minussym){
-        if(curToken.type == plussym){
+    while (curToken.type == plussym || curToken.type == minussym) {
+        if (curToken.type == plussym) {
             ++parserCount;
             Term();
             curToken = tokens[parserCount];
             //emits add
-            emit(2,0,1);
-        }
-        else{
+            emit(2, 0, 1);
+        } else {
             ++parserCount;
             Term();
             curToken = tokens[parserCount];
             //emits sub
-            emit(2,0,2);
+            emit(2, 0, 2);
         }
     }
     return 0;
 }
 
-int Term(){
+int Term() {
 
     Factor();
 
     Token curToken = tokens[parserCount];
-    while(curToken.type == multsym || curToken.type == slashsym){
+    while (curToken.type == multsym || curToken.type == slashsym) {
 
-        if(curToken.type == multsym){
+        if (curToken.type == multsym) {
             ++parserCount;
             Factor();
             curToken = tokens[parserCount];
             //emit multiplication
-            emit(2,0,3);
-        }
-        else{
+            emit(2, 0, 3);
+        } else {
             ++parserCount;
             Factor();
             curToken = tokens[parserCount];
             //emit division
-            emit(2,0,4);
+            emit(2, 0, 4);
         }
 
     }
     return 0;
 }
-int Factor(){
+
+int Factor() {
     int symIdx;
     Token curToken = tokens[parserCount];
 
-    if(curToken.type == identsym){
+    if (curToken.type == identsym) {
         symIdx = symbolTableChecker(curToken.value);
 
-        if (symIdx == -1){
+        if (symIdx == -1) {
             printf("ERROR: undeclared identifier\n");
             exit(-3);
         }
 
-        if(symbols[symIdx].kind == 1){//const
+        if (symbols[symIdx].kind == 1) {//const
             //emits literal
-            emit(1,0,symbols[symIdx].val);
+            emit(1, 0, symbols[symIdx].val);
             symbols[symIdx].mark = 1;
-        }
-        else{ // variable
+        } else { // variable
             //emits load
-            emit(3,symbols[symIdx].level,symbols[symIdx].addr);
+            emit(3, symbols[symIdx].level, symbols[symIdx].addr);
             symbols[symIdx].mark = 1;
 
         }
         ++parserCount;
 
 
-    }
-    else if(curToken.type == numbersym){
+    } else if (curToken.type == numbersym) {
         //emit lit
         int number;
         number = numConvert(curToken.value);
-        emit(1,0,number);
+        emit(1, 0, number);
         ++parserCount;
-    }
-    else if(curToken.type == lparentsym){
+    } else if (curToken.type == lparentsym) {
         ++parserCount;
         Expression();
         curToken = tokens[parserCount];
 
-        if (curToken.type != rparentsym){
+        if (curToken.type != rparentsym) {
             printf("ERROR: right parenthesis must follow left parenthesis\n");
             exit(-3);
         }
         ++parserCount;
 
-    }
-    else{
+    } else {
         printf("ERROR: arithmetic equations must contain operands, parentheses, numbers, or\n"
                "symbols\n");
         exit(-3);
@@ -573,7 +587,7 @@ int Factor(){
 void Statement() {
     Token curToken = tokens[parserCount];
 
-    if(curToken.type == identsym){
+    if (curToken.type == identsym) {
         int symidx = symbolTableChecker(curToken.value);
 
         if (symidx == -1) {
@@ -588,7 +602,7 @@ void Statement() {
         }
         curToken = tokens[++parserCount];
 
-        if(curToken.type != becomessym){
+        if (curToken.type != becomessym) {
             printf("\nERROR: assignment statements must use :=\n");
             exit(-4);
         }
@@ -598,60 +612,59 @@ void Statement() {
         Expression();
 
         //emits store code
-        emit(4,0,symbols[symidx].addr);
+        emit(4, 0, symbols[symidx].addr);
         symbols[symidx].val = total;
         symbols[symidx].mark = 1;
 
         return;
 
     }
-    if(curToken.type == beginsym){
+    if (curToken.type == beginsym) {
         do {
             ++parserCount;
             Statement();
             curToken = tokens[parserCount];
 
-        }
-        while(curToken.type == semicolonsym);
-        if (curToken.type != endsym){
+        } while (curToken.type == semicolonsym);
+        if (curToken.type != endsym) {
             printf("ERROR: begin must be followed by end");
             exit(-4);
         }
         ++parserCount;
         return;
     }
-    if (curToken.type == ifsym){
+    if (curToken.type == ifsym) {
         ++parserCount;
         Condition();
         curToken = tokens[parserCount];
         //emit JPC
         int JpcInx = opIndex;
-        emit(8,0,JpcInx);
+        emit(8, 0, JpcInx);
 
-        if(curToken.type != thensym){
+        if (curToken.type != thensym) {
             printf("ERROR: if must be followed by then\n");
             exit(-4);
         }
         ++parserCount;
         Statement();
         curToken = tokens[parserCount];
-        if(curToken.type != fisym){
+        if (curToken.type != fisym) {
             printf("ERROR: then must be followed by fi\n");
             exit(-4);
         }
         ++parserCount;
 
         //JpcInx +2 is in the M spot of the opCode command
-        opCode[JpcInx+2] = opIndex;
+        opCode[JpcInx + 2] = opIndex;
         return;
 
     }
-    if(curToken.type == whilesym){
+    if (curToken.type == whilesym) {
         ++parserCount;
         int loopIdx = opIndex;
         Condition();
         curToken = tokens[parserCount];
-        if(curToken.type != dosym){
+        if (curToken.type != dosym) {
             printf("ERROR: while must be followed by do\n");
             exit(-4);
         }
@@ -659,101 +672,93 @@ void Statement() {
         int JpcInx = opIndex;
 
         //emit JPC
-        emit(8,0,JpcInx);
+        emit(8, 0, JpcInx);
         Statement();
         //emit jpc
-        emit(8,0,loopIdx);
-        opCode[JpcInx+2] = opIndex;
+        emit(8, 0, loopIdx);
+        opCode[JpcInx + 2] = opIndex;
         return;
     }
-    if (curToken.type == readsym){
-        curToken= tokens[++parserCount];
-        if (curToken.type != identsym){
+    if (curToken.type == readsym) {
+        curToken = tokens[++parserCount];
+        if (curToken.type != identsym) {
             printf("ERROR: read must be followed by an identifier\n");
             exit(-4);
         }
         int symIdx = symbolTableChecker(curToken.value);
-        if(symIdx == -1){
+        if (symIdx == -1) {
             printf("ERROR: Identifier not found\n");
             exit(-4);
         }
-        if (symbols[symIdx].kind != 2){
+        if (symbols[symIdx].kind != 2) {
             printf("ERROR: Not a variable\n");
             exit(-4);
         }
         ++parserCount;
-        emit(9,0,2);
-        emit(4,0,symbols[symIdx].addr);
+        emit(9, 0, 2);
+        emit(4, 0, symbols[symIdx].addr);
         return;
     }
-    if (curToken.type == writesym){
+    if (curToken.type == writesym) {
         ++parserCount;
         Expression();
-        emit(9,0,1);
+        emit(9, 0, 1);
         return;
     }
-
-
 
 
     return;
 }
-int Condition(){
+
+int Condition() {
     Token curToken = tokens[parserCount];
-    if(curToken.type == oddsym){
+    if (curToken.type == oddsym) {
         ++parserCount;
         Expression();
         //emit odd
-        emit(2,0,11);
-    }
-    else{
+        emit(2, 0, 11);
+    } else {
         Expression();
         curToken = tokens[parserCount];
-        if( curToken.type == eqlsym){
+        if (curToken.type == eqlsym) {
             ++parserCount;
             Expression();
 
             //emit EQL
-            emit(2,0,5);
-        }
-        else if(curToken.type == neqsym){
+            emit(2, 0, 5);
+        } else if (curToken.type == neqsym) {
             ++parserCount;
             Expression();
 
             //emit NEQ
-            emit(2,0,6);
+            emit(2, 0, 6);
 
-        }
-        else if (curToken.type == lessym){
+        } else if (curToken.type == lessym) {
             ++parserCount;
             Expression();
 
             //emit LLS
-            emit(2,0,7);
+            emit(2, 0, 7);
 
-        }
-        else if(curToken.type == leqsym){
+        } else if (curToken.type == leqsym) {
             ++parserCount;
             Expression();
 
             //emit LEQ
-            emit(2,0,8);
-        }
-        else if(curToken.type == gtrsym){
+            emit(2, 0, 8);
+        } else if (curToken.type == gtrsym) {
             ++parserCount;
             Expression();
 
             //emit GTR
-            emit(2,0,9);
-        }
-        else if(curToken.type == geqsym){
+            emit(2, 0, 9);
+        } else if (curToken.type == geqsym) {
             ++parserCount;
             Expression();
 
             //emit GEQ
-            emit(2,0,10);
-        }
-        else{
+            emit(2, 0, 10);
+        } else {
             printf("ERROR: condition must contain comparison operator\n");
             exit(-5);
         }
@@ -763,7 +768,7 @@ int Condition(){
 
 void parser() {
     //jump is always the first command
-    emit(7,0,3);
+    emit(7, 0, 3);
 
     int numVar;
 
@@ -772,11 +777,9 @@ void parser() {
     numVar = varDeclaration();
 
     //emit inc
-    emit(6,0,numVar + 3);
+    emit(6, 0, numVar + 3);
 
     Statement();
-
-
 
 
     if (tokens[token_count - 1].type != periodsym) {
@@ -784,7 +787,7 @@ void parser() {
         exit(-5);
     }
     //emits halt(code ended correctly with no errors)
-    emit(9,0,3);
+    emit(9, 0, 3);
 }
 
 // Main function

@@ -1,9 +1,10 @@
-const z = 2;
-var x, y;
+const x = 2, y = 3, z = 6;
+var a, b, c, d;
 begin
-while x <> 2
-do x := x + 1;
-y := 3;
-x := 6 * (y + 56);
-
+    a := x + y + z;
+    b := x * y * z;
+    c := x + 4 + 4955;
+    if a = 5 then
+            write 3
+            fi
 end.

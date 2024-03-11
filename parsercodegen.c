@@ -305,7 +305,44 @@ void printOpCode() {
                     break;
 
                 case 2:
-                    printf("OPR\t");
+                    switch(opCode[i+2]){
+                        case 0:
+                        printf("OPR\t");
+                        break;
+                        case 1:
+                            printf("ADD\t");
+                            break;
+                        case 2:
+                            printf("SUB\t");
+                            break;
+                        case 3:
+                            printf("MUL\t");
+                            break;
+                        case 4:
+                            printf("DIV\t");
+                            break;
+                        case 5:
+                            printf("EQL\t");
+                            break;
+                        case 6:
+                            printf("NEQ\t");
+                            break;
+                        case 7:
+                            printf("LSS\t");
+                            break;
+                        case 8:
+                            printf("LEQ\t");
+                            break;
+                        case 9:
+                            printf("GTR\t");
+                            break;
+                        case 10:
+                            printf("GEQ\t");
+                            break;
+                        case 11:
+                            printf("ODD\t");
+                            break;
+                    }
                     break;
 
                 case 3:
@@ -392,47 +429,57 @@ void emit(int op, int l, int m) { //used to write opcode
 
 int constDeclaration() {
 
+    //grabs current token
     Token curToken = tokens[parserCount];
+
+    //checks if curtoken is a constant
     if (curToken.type == constsym) {
         do {
             curToken = tokens[++parserCount];
-            // printf("\nPRINT 1 : %d %s", curToken.type, curToken.value);
 
 
+            //if curtoken is an identifier we print error and exit
             if (curToken.type != identsym) {
                 printf("\nERROR: const, var, and read keywords must be followed by identifier\n");
                 exit(-1);
             }
+            //if curtoken is an identifier already declared print error and exit
             if (symbolTableChecker(curToken.value) != -1) {
                 printf("\nERROR: symbol name has already been declared\n");
                 exit(-1);
             }
 
+
             char identName[11];
+
+            //copies the string of the current token(variable or constant) to the
             strcpy(identName, curToken.value);
 
             curToken = tokens[++parserCount];
-            //printf("\nPRINT 2 : %d %s", curToken.type, curToken.value);
+
 
             if (curToken.type != eqlsym) {
                 printf("\nERROR: constants must be assigned with =\n");
                 exit(-1);
             }
 
+            //next token
             curToken = tokens[++parserCount];
-            //printf("\nPRINT 3 : %d %s", curToken.type, curToken.value);
 
+            //error if the token is a number
             if (curToken.type != numbersym) {
                 printf("\nERROR: constants must be assigned with an integer value\n");
                 exit(-1);
             }
 
+            //runs the function to convert chars into numbers
             int num = numConvert(curToken.value);
 
+            //adds symbol to the table and assigns its attributes
             addToSymbolTable(1, identName, num, 0, 0, 0);
 
+            //next token
             curToken = tokens[++parserCount];
-            //printf("\nPRINT 4 : %d %s", curToken.type, curToken.value);
 
 
         } while (curToken.type == commasym);
@@ -452,37 +499,45 @@ int varDeclaration() {
 
     int numVar = 0;
     Token curToken = tokens[parserCount];
+
     if (curToken.type == varsym) {
         do {
             numVar++;
             curToken = tokens[++parserCount];
 
-            // printf("\nPRINT 1 : %d %s", curToken.type, curToken.value);
+           //if the current token is not an identifier we print error and return
             if (curToken.type != identsym) {
-                printf("\nERROR: const, var, and read keywords must be followed by identifier\n");
+                printf("ERROR: const, var, and read keywords must be followed by identifier\n");
                 exit(-2);
             }
+
+            //if curtoken is an identifier already declared print error and exit
             if (symbolTableChecker(curToken.value) != -1) {
-                printf("\nERROR: symbol name has already been declared\n");
+                printf("ERROR: symbol name has already been declared\n");
                 exit(-2);
             }
 
             char identName[11];
+            //copies the variable string
             strcpy(identName, curToken.value);
 
+            //adds the variable to the symbol table with assigned attributes
             addToSymbolTable(2, identName, 0, 0, numVar + 2, 0);
 
             curToken = tokens[++parserCount];
-            //printf("\nPRINT 4 : %d %s", curToken.type, curToken.value);
+
 
 
         } while (curToken.type == commasym);
+
         if (curToken.type != semicolonsym) {
             printf("\nERROR: constant and variable declarations must be followed by a semicolon\n");
             exit(-2);
         }
+        //next token
         ++parserCount;
     }
+    //the total number of variables that were initalized
     return numVar;
 }
 
@@ -490,18 +545,26 @@ int Expression() {
     Token curToken;
 
     Term();
+
+    //current token
     curToken = tokens[parserCount];
+
+    //if the current token is a plus or minus
     while (curToken.type == plussym || curToken.type == minussym) {
         if (curToken.type == plussym) {
+
             ++parserCount;
             Term();
             curToken = tokens[parserCount];
+
             //emits add
             emit(2, 0, 1);
         } else {
+
             ++parserCount;
             Term();
             curToken = tokens[parserCount];
+
             //emits sub
             emit(2, 0, 2);
         }
@@ -512,20 +575,26 @@ int Expression() {
 int Term() {
 
     Factor();
-
+    //updates curToken to current token
     Token curToken = tokens[parserCount];
+
+    //if the current token is * or /
     while (curToken.type == multsym || curToken.type == slashsym) {
 
         if (curToken.type == multsym) {
+
             ++parserCount;
             Factor();
             curToken = tokens[parserCount];
+
             //emit multiplication
             emit(2, 0, 3);
         } else {
+
             ++parserCount;
             Factor();
             curToken = tokens[parserCount];
+
             //emit division
             emit(2, 0, 4);
         }
@@ -541,42 +610,55 @@ int Factor() {
     if (curToken.type == identsym) {
         symIdx = symbolTableChecker(curToken.value);
 
+        //identifier is undeclared
         if (symIdx == -1) {
             printf("ERROR: undeclared identifier\n");
             exit(-3);
         }
 
         if (symbols[symIdx].kind == 1) {//const
+
             //emits literal
             emit(1, 0, symbols[symIdx].val);
             symbols[symIdx].mark = 1;
         } else { // variable
+
             //emits load
             emit(3, symbols[symIdx].level, symbols[symIdx].addr);
             symbols[symIdx].mark = 1;
 
         }
+        //next token
         ++parserCount;
 
-
+        //token is a number
     } else if (curToken.type == numbersym) {
-        //emit lit
+
         int number;
+        //converts char array into number
         number = numConvert(curToken.value);
+
+        //emit lit
         emit(1, 0, number);
+        //next token
         ++parserCount;
+
+        //left parentheses
     } else if (curToken.type == lparentsym) {
         ++parserCount;
         Expression();
         curToken = tokens[parserCount];
 
+        //right parentheses not found
         if (curToken.type != rparentsym) {
             printf("ERROR: right parenthesis must follow left parenthesis\n");
             exit(-3);
         }
+        //next token
         ++parserCount;
 
     } else {
+        //following := no correct tokens found
         printf("ERROR: arithmetic equations must contain operands, parentheses, numbers, or\n"
                "symbols\n");
         exit(-3);
@@ -587,21 +669,26 @@ int Factor() {
 void Statement() {
     Token curToken = tokens[parserCount];
 
+    //if an identifier
     if (curToken.type == identsym) {
         int symidx = symbolTableChecker(curToken.value);
 
+        //not found in symbol table
         if (symidx == -1) {
             printf("\nERROR: undeclared identifier\n");
             exit(-4);
         }
 
+        //symbol was a constant and cant be modified thus print error and exit
         if (symbols[symidx].kind != 2) {
-            //not a var
             printf("\n ERROR: only variable values may be altered\n");
             exit(-4);
         }
+
+        //next token
         curToken = tokens[++parserCount];
 
+        //become sym not found
         if (curToken.type != becomessym) {
             printf("\nERROR: assignment statements must use :=\n");
             exit(-4);
@@ -621,8 +708,11 @@ void Statement() {
     }
     if (curToken.type == beginsym) {
         do {
+            //next token
             ++parserCount;
+
             Statement();
+            //updates curToken
             curToken = tokens[parserCount];
 
         } while (curToken.type == semicolonsym);
@@ -630,28 +720,42 @@ void Statement() {
             printf("ERROR: begin must be followed by end");
             exit(-4);
         }
+        //next token
         ++parserCount;
         return;
     }
     if (curToken.type == ifsym) {
+        //next token
         ++parserCount;
+
         Condition();
+        //updates curToken
         curToken = tokens[parserCount];
-        //emit JPC
+
+        //holds current opcode index
         int JpcInx = opIndex;
+
+        //emit JPC
         emit(8, 0, JpcInx);
 
+        //then not found
         if (curToken.type != thensym) {
             printf("ERROR: if must be followed by then\n");
             exit(-4);
         }
+
+        //next token
         ++parserCount;
+
         Statement();
+        //updates curtoken
         curToken = tokens[parserCount];
+
         if (curToken.type != fisym) {
             printf("ERROR: then must be followed by fi\n");
             exit(-4);
         }
+        //next token
         ++parserCount;
 
         //JpcInx +2 is in the M spot of the opCode command
@@ -660,22 +764,33 @@ void Statement() {
 
     }
     if (curToken.type == whilesym) {
+        //next token
         ++parserCount;
+
+        //hold current index value
         int loopIdx = opIndex;
+
         Condition();
         curToken = tokens[parserCount];
+        //do not found
         if (curToken.type != dosym) {
             printf("ERROR: while must be followed by do\n");
             exit(-4);
         }
+        //next token
         ++parserCount;
+
         int JpcInx = opIndex;
 
         //emit JPC
         emit(8, 0, JpcInx);
+
         Statement();
+
         //emit jpc
         emit(8, 0, loopIdx);
+
+        //+2 for the m spot of the opCode
         opCode[JpcInx + 2] = opIndex;
         return;
     }
@@ -686,22 +801,33 @@ void Statement() {
             exit(-4);
         }
         int symIdx = symbolTableChecker(curToken.value);
+
+        //identifier not found
         if (symIdx == -1) {
             printf("ERROR: Identifier not found\n");
             exit(-4);
         }
+
+        //constant therefore not valid print error and exit
         if (symbols[symIdx].kind != 2) {
             printf("ERROR: Not a variable\n");
             exit(-4);
         }
+        //next token
         ++parserCount;
+
+        //emit read
         emit(9, 0, 2);
+
+        //emit store
         emit(4, 0, symbols[symIdx].addr);
         return;
     }
     if (curToken.type == writesym) {
+        //next token
         ++parserCount;
         Expression();
+        //emit write
         emit(9, 0, 1);
         return;
     }

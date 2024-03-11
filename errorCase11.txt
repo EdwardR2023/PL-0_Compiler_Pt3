@@ -1,8 +1,0 @@
-const z = 2;
-var x, y;
-begin
-while x <> 2
-x := x + 1;
-y := 3;
-x := 6 * (y + 56);
-end.

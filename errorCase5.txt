@@ -1,5 +1,0 @@
-const a = 3;
-var x, y, z
-begin
-z:= y * 2;
-end.

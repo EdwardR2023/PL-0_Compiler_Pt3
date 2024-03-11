@@ -1,6 +1,0 @@
-var x, y;
-begin
-if x = y
-x:= 1
-fi
-end.
